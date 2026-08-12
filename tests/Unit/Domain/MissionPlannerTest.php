@@ -6,19 +6,6 @@ use App\Domain\Lunar\MissionPlanner;
 use App\Domain\Lunar\RouteFinder;
 use App\Domain\Lunar\Rules;
 
-/**
- * Прямая дорога заданной длины по морской равнине: стоимость маршрута
- * равна числу клеток без стартовой, поэтому ожидаемые значения считаются
- * на бумаге.
- */
-function flatCorridor(int $length): array
-{
-    $map = mapFromRows([str_repeat('.', $length)]);
-    $route = RouteFinder::find($map, new Coordinate(0, 0), new Coordinate($length - 1, 0));
-
-    return [$map, $route];
-}
-
 function estimateFor(
     array $mapAndRoute,
     int $cargoKg,

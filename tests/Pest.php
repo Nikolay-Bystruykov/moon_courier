@@ -2,6 +2,7 @@
 
 use App\Domain\Lunar\Coordinate;
 use App\Domain\Lunar\LunarMap;
+use App\Domain\Lunar\RouteFinder;
 use App\Domain\Lunar\Terrain;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,4 +37,18 @@ function mapFromRows(array $rows): LunarMap
     }
 
     return new LunarMap(strlen($rows[0]), count($rows), $tiles);
+}
+
+/**
+ * Прямая дорога заданной длины по морской равнине. Стоимость такого маршрута
+ * равна числу клеток без стартовой, поэтому ожидаемые расходы и время
+ * считаются на бумаге и не зависят от генератора карты.
+ *
+ * @return array{0: LunarMap, 1: App\Domain\Lunar\Route}
+ */
+function flatCorridor(int $length): array
+{
+    $map = mapFromRows([str_repeat('.', $length)]);
+
+    return [$map, RouteFinder::find($map, new Coordinate(0, 0), new Coordinate($length - 1, 0))];
 }
