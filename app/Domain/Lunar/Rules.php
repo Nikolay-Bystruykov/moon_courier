@@ -23,6 +23,18 @@ class Rules
 
     public const MAX_OUTPOST_COST = 32.0;
 
+    /**
+     * Пояса дальности: сколько аванпостов ставить в каждом диапазоне стоимости.
+     *
+     * Без поясов случайная расстановка сбивает почти все аванпосты в один
+     * пояс, и выбор ровера перестаёт что-либо значить: любой доезжает всюду.
+     */
+    public const OUTPOST_BANDS = [
+        ['count' => 3, 'min' => 6.0, 'max' => 12.0],
+        ['count' => 3, 'min' => 12.0, 'max' => 20.0],
+        ['count' => 2, 'min' => 20.0, 'max' => 32.0],
+    ];
+
     /** Заряд, который тратит порожний ровер на клетку морской равнины. */
     public const BASE_BATTERY_DRAW = 1.5;
 
@@ -79,7 +91,7 @@ class Rules
 
     public const ORDER_DEADLINE_MAX = 5;
 
-    public const REWARD_PER_KG = 0.6;
+    public const REWARD_PER_KG = 1.0;
 
     public const REWARD_PER_COST = 18.0;
 

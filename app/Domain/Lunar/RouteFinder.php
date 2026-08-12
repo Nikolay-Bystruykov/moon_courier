@@ -60,6 +60,57 @@ class RouteFinder
         return null;
     }
 
+    /**
+     * Стоимость проезда от точки до каждой достижимой клетки за один проход.
+     *
+     * Нужна там, где интересны расстояния до всех клеток сразу — например при
+     * расстановке аванпостов. Отдельный поиск до каждой клетки дал бы сотни
+     * повторных проходов по одной и той же карте.
+     *
+     * @return array<string, float>
+     */
+    public static function costsFrom(LunarMap $map, Coordinate $from): array
+    {
+        if (! $map->contains($from)) {
+            return [];
+        }
+
+        $distances = [$from->key() => 0.0];
+        $settled = [];
+
+        $queue = new SplPriorityQueue();
+        $queue->insert($from, 0.0);
+
+        while (! $queue->isEmpty()) {
+            /** @var Coordinate $current */
+            $current = $queue->extract();
+            $key = $current->key();
+
+            if (isset($settled[$key])) {
+                continue;
+            }
+
+            $settled[$key] = true;
+
+            foreach ($map->neighbours($current) as $neighbour) {
+                $neighbourKey = $neighbour->key();
+
+                if (isset($settled[$neighbourKey])) {
+                    continue;
+                }
+
+                $candidate = $distances[$key] + $map->at($neighbour)->moveCost();
+
+                if (! isset($distances[$neighbourKey]) || $candidate < $distances[$neighbourKey]) {
+                    $distances[$neighbourKey] = $candidate;
+                    $queue->insert($neighbour, -$candidate);
+                }
+            }
+        }
+
+        return $distances;
+    }
+
     /** @param  array<string, Coordinate>  $previous */
     private static function buildRoute(array $previous, Coordinate $from, Coordinate $to, float $cost): Route
     {
