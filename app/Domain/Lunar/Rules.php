@@ -47,8 +47,14 @@ class Rules
     /** Неснижаемый остаток заряда, который нельзя закладывать в рейс. */
     public const BATTERY_RESERVE = 0.10;
 
-    /** Доля ёмкости, восстанавливаемая за сутки на базе. */
-    public const RECHARGE_RATE = 0.45;
+    /**
+     * Доля ёмкости, восстанавливаемая за сутки на базе.
+     *
+     * Ниже 0.6 парк не успевает оборачиваться: ровер после рейса простаивает
+     * двое суток, весь парк выдаёт меньше рейса в сутки, и заказы копятся
+     * быстрее, чем их успевают возить.
+     */
+    public const RECHARGE_RATE = 0.65;
 
     public const OVERLOAD_THRESHOLD = 0.85;
 
@@ -77,11 +83,15 @@ class Rules
 
     public const REPUTATION_FAILED = -12;
 
-    public const REPUTATION_EXPIRED = -8;
+    public const REPUTATION_EXPIRED = -4;
 
+    /**
+     * Поток заявок держится чуть выше пропускной способности парка: игрок
+     * обязан выбирать, что везти, но не тонет в заведомо непосильной очереди.
+     */
     public const ORDERS_PER_DAY_MIN = 2;
 
-    public const ORDERS_PER_DAY_MAX = 4;
+    public const ORDERS_PER_DAY_MAX = 3;
 
     public const ORDER_WEIGHT_MIN = 40;
 

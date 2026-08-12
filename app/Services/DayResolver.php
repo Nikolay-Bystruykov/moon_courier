@@ -32,22 +32,25 @@ class DayResolver
             $game->increment('day');
             $game->refresh();
 
-            $this->resolveArrivals($game);
+            $returned = $this->resolveArrivals($game);
             $this->expireOrders($game);
-            $this->recharge($game);
+            $this->recharge($game, $returned);
             $this->finishRepairs($game);
             $this->issueOrders($game);
             $this->checkEnd($game);
         });
     }
 
-    private function resolveArrivals(Game $game): void
+    /** @return array<int, true> идентификаторы роверов, вернувшихся сегодня */
+    private function resolveArrivals(Game $game): array
     {
         $arrivals = Delivery::with(['rover', 'order.outpost'])
             ->where('game_id', $game->id)
             ->where('status', 'in_transit')
             ->where('return_day', '<=', $game->day)
             ->get();
+
+        $returned = [];
 
         foreach ($arrivals as $delivery) {
             // Исход выводится из зерна и потому пересчитывается одинаково
@@ -59,7 +62,11 @@ class DayResolver
             }
 
             $this->applyOutcome($game, $delivery, $outcome);
+
+            $returned[$delivery->rover_id] = true;
         }
+
+        return $returned;
     }
 
     /**
@@ -202,9 +209,21 @@ class DayResolver
         }
     }
 
-    private function recharge(Game $game): void
+    /**
+     * @param  array<int, true>  $returnedToday роверы, вернувшиеся этими сутками
+     *
+     * Вернувшийся ровер встаёт на зарядку только со следующих суток. Иначе
+     * короткий рейс полностью окупался бы дневной подзарядкой, и запас хода
+     * перестал бы что-либо ограничивать.
+     */
+    private function recharge(Game $game, array $returnedToday): void
     {
-        foreach ($game->rovers()->where('status', '!=', 'en_route')->get() as $rover) {
+        $resting = $game->rovers()
+            ->where('status', '!=', 'en_route')
+            ->get()
+            ->reject(fn ($rover) => isset($returnedToday[$rover->id]));
+
+        foreach ($resting as $rover) {
             $rover->update([
                 'battery_level' => min(
                     (float) $rover->battery_capacity,
