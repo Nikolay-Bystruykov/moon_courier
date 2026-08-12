@@ -52,3 +52,24 @@ function flatCorridor(int $length): array
 
     return [$map, RouteFinder::find($map, new Coordinate(0, 0), new Coordinate($length - 1, 0))];
 }
+
+/**
+ * Ровер заданного класса и заведомо подъёмный для него заказ на ближайший
+ * аванпост — отправная точка для тестов, которым нужен выполнимый рейс.
+ *
+ * @return array{0: App\Models\Rover, 1: App\Models\Order}
+ */
+function nearestOrderFor(App\Models\Game $game, string $roverClass = 'hauler'): array
+{
+    $rover = $game->rovers()->where('rover_class', $roverClass)->firstOrFail();
+
+    $order = $game->orders()
+        ->join('outposts', 'orders.outpost_id', '=', 'outposts.id')
+        ->where('orders.status', 'pending')
+        ->where('orders.weight_kg', '<=', $rover->capacity_kg)
+        ->orderBy('outposts.route_cost')
+        ->select('orders.*')
+        ->firstOrFail();
+
+    return [$rover, $order];
+}
