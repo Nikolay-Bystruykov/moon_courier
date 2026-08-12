@@ -54,22 +54,37 @@ function flatCorridor(int $length): array
 }
 
 /**
- * Ровер заданного класса и заведомо подъёмный для него заказ на ближайший
- * аванпост — отправная точка для тестов, которым нужен выполнимый рейс.
+ * Пара «ровер и заявка», для которой рейс заведомо допустим.
+ *
+ * Состав заявок зависит от зерна партии, поэтому пара подбирается проверкой
+ * через сам сервис, а не угадывается по весу: иначе тест ломался бы на
+ * партиях, где все заявки оказались тяжёлыми.
  *
  * @return array{0: App\Models\Rover, 1: App\Models\Order}
  */
-function nearestOrderFor(App\Models\Game $game, string $roverClass = 'hauler'): array
+function nearestOrderFor(App\Models\Game $game, ?string $roverClass = null): array
 {
-    $rover = $game->rovers()->where('rover_class', $roverClass)->firstOrFail();
+    $missions = app(App\Services\MissionService::class);
 
-    $order = $game->orders()
+    $rovers = $game->rovers()
+        ->when($roverClass, fn ($query) => $query->where('rover_class', $roverClass))
+        ->get();
+
+    $orders = $game->orders()
+        ->with('outpost')
         ->join('outposts', 'orders.outpost_id', '=', 'outposts.id')
         ->where('orders.status', 'pending')
-        ->where('orders.weight_kg', '<=', $rover->capacity_kg)
         ->orderBy('outposts.route_cost')
         ->select('orders.*')
-        ->firstOrFail();
+        ->get();
 
-    return [$rover, $order];
+    foreach ($orders as $order) {
+        foreach ($rovers as $rover) {
+            if ($missions->plan($game, $rover, $order)->validation->allowed) {
+                return [$rover, $order];
+            }
+        }
+    }
+
+    throw new RuntimeException('В партии нет ни одной выполнимой пары ровер—заявка');
 }

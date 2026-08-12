@@ -1,9 +1,69 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/*
+ * Палитра взята от самой поверхности: реголит отражает около двенадцати
+ * процентов света и уходит в серо-коричневый, поэтому фон здесь не чёрный,
+ * а глубокая тень с синевой. Янтарь — цвет подсветки приборных панелей.
+ */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-void: #0a0d12;
+    --color-panel: #12171f;
+    --color-edge: #232c39;
+    --color-ink: #dbe4ef;
+    --color-dim: #6b7d93;
+    --color-amber: #f0a92e;
+    --color-good: #5fa87d;
+    --color-warn: #d08a3c;
+    --color-bad: #c25b52;
+
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+    body {
+        background-color: var(--color-void);
+        color: var(--color-ink);
+    }
+
+    /* Цифры телеметрии читают колонкой сверху вниз, поэтому разряды должны
+       стоять друг под другом. */
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@layer components {
+    /* Метка приборной панели: разрядка вместо жирности. */
+    .label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-dim);
+    }
+
+    .panel {
+        border: 1px solid var(--color-edge);
+        background-color: var(--color-panel);
+    }
+
+    .cell {
+        transition: fill 120ms linear;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }
