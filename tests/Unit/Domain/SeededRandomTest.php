@@ -42,6 +42,25 @@ it('returns integers within the requested bounds', function () {
     expect(array_keys($seen))->toHaveCount(4);
 });
 
+it('spreads first values across the interval for consecutive seeds', function () {
+    // Зёрна рейсов идут подряд, и без перемешивания стартового состояния
+    // первое значение росло бы линейно: 0.00002, 0.00005, 0.00007. Тогда
+    // любая проверка «выпало меньше риска» срабатывала бы всегда.
+    $values = [];
+
+    for ($seed = 1; $seed <= 1000; $seed++) {
+        $values[] = (new SeededRandom($seed))->next();
+    }
+
+    $mean = array_sum($values) / count($values);
+    $low = count(array_filter($values, fn (float $v) => $v < 0.25));
+    $high = count(array_filter($values, fn (float $v) => $v > 0.75));
+
+    expect($mean)->toBeGreaterThan(0.45)->toBeLessThan(0.55);
+    expect($low / 1000)->toBeGreaterThan(0.2)->toBeLessThan(0.3);
+    expect($high / 1000)->toBeGreaterThan(0.2)->toBeLessThan(0.3);
+});
+
 it('survives a zero seed', function () {
     $rng = new SeededRandom(0);
 
