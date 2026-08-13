@@ -75,6 +75,11 @@ class MissionService
         return DB::transaction(function () use ($game, $rover, $order, $plan) {
             $estimate = $plan->estimate;
 
+            // Зерно рейса считается от порядкового номера внутри партии, а не
+            // от идентификатора строки: иначе одна и та же партия давала бы
+            // разные исходы в зависимости от того, сколько игр уже лежит в базе.
+            $ordinal = $game->deliveries()->count() + 1;
+
             $delivery = Delivery::create([
                 'game_id' => $game->id,
                 'rover_id' => $rover->id,
@@ -86,13 +91,9 @@ class MissionService
                 'battery_cost' => round($estimate->batteryCost, 2),
                 'risk' => round($estimate->risk->total, 4),
                 'risk_breakdown' => $estimate->risk->components(),
-                'seed' => 0,
+                'seed' => MissionResolver::seedFor($game->seed, $ordinal),
                 'status' => 'in_transit',
             ]);
-
-            // Зерно выводится из идентификатора рейса, а он известен только
-            // после вставки строки.
-            $delivery->update(['seed' => MissionResolver::seedFor($game->seed, $delivery->id)]);
 
             $rover->update(['status' => 'en_route']);
             $order->update(['status' => 'assigned']);

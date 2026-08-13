@@ -1,6 +1,6 @@
 @php
     $won = $game->status === 'won';
-    $score = $game->credits + $game->reputation * 10;
+    $score = App\Domain\Lunar\Scoring::total($game->credits, $fleetValue, $game->reputation);
 @endphp
 
 <section class="panel {{ $won ? 'border-good' : 'border-bad' }} p-5">
@@ -18,6 +18,7 @@
         @foreach ([
             ['итог', number_format($score, 0, '.', ' ')],
             ['кредиты', number_format($game->credits, 0, '.', ' ')],
+            ['парк', number_format($fleetValue, 0, '.', ' ')],
             ['рейтинг', $game->reputation],
             ['доставлено', $delivered],
         ] as [$label, $value])
@@ -27,6 +28,12 @@
             </div>
         @endforeach
     </dl>
+
+    <p class="mt-4 font-sans text-xs text-dim">
+        Итог складывается из кредитов, стоимости парка и рейтинга базы,
+        умноженного на {{ App\Domain\Lunar\Scoring::REPUTATION_WEIGHT }}.
+        Купленная техника входит в счёт, поэтому вложения в гараж не пропадают.
+    </p>
 
     <form method="POST" action="{{ route('game.new') }}" class="mt-6">
         @csrf

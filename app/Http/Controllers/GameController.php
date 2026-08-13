@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Lunar\RoverClass;
 use App\Domain\Lunar\Rules;
+use App\Domain\Lunar\Scoring;
 use App\Domain\Lunar\Terrain;
+use App\Domain\Lunar\Upgrade;
 use App\Models\Game;
 use App\Services\GameFactory;
 use Illuminate\Contracts\View\View;
@@ -81,6 +84,8 @@ class GameController extends Controller
                 'battery_capacity' => $rover->battery_capacity,
                 'battery_percent' => (int) round($rover->battery_level / $rover->battery_capacity * 100),
                 'range_km' => $this->rangeInTiles($rover),
+                'battery_upgraded' => $rover->battery_upgraded,
+                'capacity_upgraded' => $rover->capacity_upgraded,
                 'available' => $rover->isAvailable(),
                 'status_label' => match ($rover->status) {
                     'idle' => 'на базе',
@@ -109,7 +114,31 @@ class GameController extends Controller
                     'message' => $event->message,
                 ])->all(),
             'delivered' => $game->orders->where('status', 'delivered')->count(),
+            'fleetValue' => Scoring::fleetValue($game->rovers->map(fn ($rover) => [
+                'class' => $rover->rover_class->value,
+                'battery_upgraded' => $rover->battery_upgraded,
+                'capacity_upgraded' => $rover->capacity_upgraded,
+            ])->all()),
             'inTransit' => $game->deliveries()->where('status', 'in_transit')->count(),
+            'garage' => [
+                'full' => $game->rovers->count() >= Rules::MAX_FLEET,
+                'fleet_limit' => Rules::MAX_FLEET,
+                'models' => array_map(fn (RoverClass $class) => [
+                    'value' => $class->value,
+                    'label' => $class->label(),
+                    'price' => Rules::ROVER_PRICES[$class->value],
+                    'affordable' => $game->credits >= Rules::ROVER_PRICES[$class->value],
+                    'capacity_kg' => $class->capacityKg(),
+                    'battery' => $class->batteryCapacity(),
+                ], RoverClass::cases()),
+                'upgrades' => array_map(fn (Upgrade $upgrade) => [
+                    'value' => $upgrade->value,
+                    'label' => $upgrade->label(),
+                    'note' => $upgrade->note(),
+                    'cost' => $upgrade->cost(),
+                    'affordable' => $game->credits >= $upgrade->cost(),
+                ], Upgrade::cases()),
+            ],
         ];
     }
 

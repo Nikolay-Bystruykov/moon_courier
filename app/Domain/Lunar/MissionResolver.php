@@ -33,11 +33,12 @@ class MissionResolver
     }
 
     /**
-     * Зерно рейса выводится из зерна партии, поэтому вся партия целиком
-     * воспроизводится по одному числу.
+     * Зерно рейса выводится из зерна партии и порядкового номера рейса внутри
+     * неё, поэтому вся партия воспроизводится по одному числу и не зависит от
+     * того, сколько других игр лежит в базе.
      */
-    public static function seedFor(int $gameSeed, int $deliveryId): int
+    public static function seedFor(int $gameSeed, int $ordinal): int
     {
-        return (int) hexdec(substr(hash('sha256', $gameSeed.':'.$deliveryId), 0, 12));
+        return (int) hexdec(substr(hash('sha256', $gameSeed.':'.$ordinal), 0, 12));
     }
 }

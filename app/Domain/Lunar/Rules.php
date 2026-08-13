@@ -116,4 +116,25 @@ class Rules
 
     /** Доля награды при опоздании. */
     public const LATE_PAYOUT = 0.5;
+
+    /**
+     * Цены гаража. Ровер стоит примерно как пять удачных рейсов, поэтому
+     * покупка — решение на всю смену, а не рутинная трата.
+     */
+    public const ROVER_PRICES = [
+        'scout' => 1800,
+        'crawler' => 2400,
+        'hauler' => 3000,
+    ];
+
+    public const UPGRADE_BATTERY_COST = 900;
+
+    public const UPGRADE_CAPACITY_COST = 1100;
+
+    public const UPGRADE_BATTERY_GAIN = 0.30;
+
+    public const UPGRADE_CAPACITY_GAIN = 0.25;
+
+    /** Больше шести роверов база не обслуживает. */
+    public const MAX_FLEET = 6;
 }

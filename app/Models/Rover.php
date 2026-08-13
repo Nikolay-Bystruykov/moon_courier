@@ -18,6 +18,8 @@ class Rover extends Model
             'battery_capacity' => 'integer',
             'battery_level' => 'float',
             'repair_days_left' => 'integer',
+            'battery_upgraded' => 'boolean',
+            'capacity_upgraded' => 'boolean',
         ];
     }
 

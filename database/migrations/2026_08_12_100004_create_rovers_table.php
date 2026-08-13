@@ -18,6 +18,10 @@ return new class extends Migration
             $table->decimal('battery_level', 6, 2);
             $table->string('status', 20)->default('idle');
             $table->unsignedTinyInteger('repair_days_left')->default(0);
+            // Каждое улучшение ставится один раз, поэтому хранится флагом,
+            // а не счётчиком.
+            $table->boolean('battery_upgraded')->default(false);
+            $table->boolean('capacity_upgraded')->default(false);
             $table->timestamps();
         });
     }

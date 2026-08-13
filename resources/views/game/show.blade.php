@@ -6,7 +6,10 @@
 @php $repBars = (int) round($game->reputation / 12.5); @endphp
 
 <div class="mx-auto max-w-[1440px] p-4 lg:p-6"
-     x-data="missionConsole(@js($ordersByOutpost))">
+     x-data="missionConsole(@js($ordersByOutpost), @js(collect($rovers)->mapWithKeys(fn ($r) => [$r['id'] => array_values(array_filter([
+         $r['battery_upgraded'] ? 'battery' : null,
+         $r['capacity_upgraded'] ? 'capacity' : null,
+     ]))])))">
 
     <header class="panel mb-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-3">
         <div class="flex items-baseline gap-3">
@@ -62,6 +65,10 @@
             @include('game.partials.orders')
 
             @if ($game->status === 'active')
+                @include('game.partials.garage')
+            @endif
+
+            @if ($game->status === 'active')
                 <form method="POST" action="{{ route('day.advance') }}">
                     @csrf
                     <button type="submit"
@@ -80,9 +87,10 @@
 </div>
 
 <script>
-    function missionConsole(ordersByOutpost) {
+    function missionConsole(ordersByOutpost, installed) {
         return {
             ordersByOutpost,
+            installed,
             selectedRover: null,
             selectedOrder: null,
             selectedOutpost: null,

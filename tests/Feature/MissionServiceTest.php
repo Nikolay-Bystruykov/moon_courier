@@ -67,6 +67,20 @@ it('logs the dispatch as an event', function () {
     expect($event->message)->toContain($order->outpost->name);
 });
 
+it('reproduces the same seeds in two identical runs', function () {
+    // Партия обязана зависеть только от своего зерна: содержимое базы на
+    // исход влиять не должно.
+    [$rover, $order] = nearestOrderFor($this->game);
+    $first = $this->service->dispatch($this->game, $rover, $order);
+
+    $twin = app(GameFactory::class)->create(seed: 31337);
+    [$twinRover, $twinOrder] = nearestOrderFor($twin);
+    $second = $this->service->dispatch($twin, $twinRover, $twinOrder);
+
+    expect($second->seed)->toBe($first->seed);
+    expect($second->id)->not->toBe($first->id);
+});
+
 it('gives different deliveries different seeds', function () {
     [$hauler, $firstOrder] = nearestOrderFor($this->game, 'hauler');
     $first = $this->service->dispatch($this->game, $hauler, $firstOrder);
