@@ -33,6 +33,56 @@ it('shows the fleet, the orders and the run state', function () {
         ->assertSee('рейтинг базы');
 });
 
+it('lays out outpost labels without overlaps', function () {
+    // Соседние аванпосты раньше подписывались друг поверх друга, а точки
+    // нижнего ряда — за краем карты.
+    foreach ([5150, 777, 31337, 90210] as $seed) {
+        $game = app(GameFactory::class)->create(seed: $seed);
+        $this->withSession(['game_id' => $game->id]);
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        preg_match_all(
+            '/<text x="([\d.]+)" y="([\d.]+)"[^>]*font-size="9\.5"[^>]*>([^<]+)<\/text>/',
+            $html,
+            $matches,
+            PREG_SET_ORDER,
+        );
+
+        expect($matches)->toHaveCount(Rules::OUTPOST_COUNT);
+
+        foreach ($matches as $label) {
+            [, $x, $y, $name] = $label;
+
+            expect((float) $y)->toBeGreaterThan(4.0);
+            expect((float) $y)->toBeLessThan(Rules::MAP_HEIGHT * 32);
+        }
+
+        foreach ($matches as $i => $first) {
+            foreach (array_slice($matches, $i + 1) as $second) {
+                $sameRow = abs((float) $first[2] - (float) $second[2]) < 8;
+                $halfWidths = (mb_strlen($first[3]) + mb_strlen($second[3])) * 5.7 / 2;
+
+                if ($sameRow) {
+                    expect(abs((float) $first[1] - (float) $second[1]))
+                        ->toBeGreaterThanOrEqual($halfWidths, "{$first[3]} и {$second[3]} накладываются");
+                }
+            }
+        }
+    }
+});
+
+it('shows every rover on the map', function () {
+    $game = app(GameFactory::class)->create(seed: 5150);
+    $this->withSession(['game_id' => $game->id]);
+
+    $html = $this->get('/')->assertOk()->getContent();
+
+    foreach ($game->rovers as $rover) {
+        expect($html)->toContain(">{$rover->name}</text>");
+    }
+});
+
 it('starts a fresh run on request', function () {
     $first = app(GameFactory::class)->create(seed: 1);
     $this->withSession(['game_id' => $first->id]);

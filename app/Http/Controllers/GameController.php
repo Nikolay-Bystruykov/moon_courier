@@ -66,14 +66,8 @@ class GameController extends Controller
                 'label' => $terrain->label(),
                 'cost' => $terrain->moveCost(),
             ], Terrain::cases()),
-            'outposts' => $game->outposts->map(fn ($outpost) => [
-                'id' => $outpost->id,
-                'name' => $outpost->name,
-                'x' => $outpost->x,
-                'y' => $outpost->y,
-                'route_cost' => $outpost->route_cost,
-                'pending' => $byOutpost->get($outpost->id)?->count() ?? 0,
-            ])->all(),
+            'outposts' => $this->outpostMarkers($game, $byOutpost),
+            'roversOnMap' => $this->roverMarkers($game),
             // Клик по аванпосту выбирает его первый ожидающий заказ: карта
             // должна быть способом управления, а не иллюстрацией.
             'ordersByOutpost' => $byOutpost->map(fn ($orders) => $orders->first()->id)->all(),
@@ -115,5 +109,112 @@ class GameController extends Controller
             'delivered' => $game->orders->where('status', 'delivered')->count(),
             'inTransit' => $game->deliveries()->where('status', 'in_transit')->count(),
         ];
+    }
+
+    /**
+     * Раскладывает подписи аванпостов так, чтобы они не наезжали друг на
+     * друга: соседние точки получают разные вертикальные уровни, а нижний ряд
+     * подписывается сверху, иначе текст уходит за край карты.
+     *
+     * @param  \Illuminate\Support\Collection<int, mixed>  $byOutpost
+     * @return array<int, array<string, mixed>>
+     */
+    private function outpostMarkers(Game $game, $byOutpost): array
+    {
+        $placed = [];
+        $markers = [];
+
+        // Ближние к базе подписываются первыми: их читают чаще.
+        foreach ($game->outposts->sortBy('route_cost') as $outpost) {
+            $halfWidth = mb_strlen($outpost->name) * 0.31;
+            $above = $outpost->y >= Rules::MAP_HEIGHT - 2;
+
+            $level = 0;
+
+            while ($this->labelCollides($placed, $outpost->x, $outpost->y, $halfWidth, $level, $above)) {
+                $level++;
+            }
+
+            $placed[] = [
+                'x' => $outpost->x,
+                'y' => $outpost->y,
+                'halfWidth' => $halfWidth,
+                'level' => $level,
+                'above' => $above,
+            ];
+
+            $markers[] = [
+                'id' => $outpost->id,
+                'name' => $outpost->name,
+                'x' => $outpost->x,
+                'y' => $outpost->y,
+                'route_cost' => $outpost->route_cost,
+                'pending' => $byOutpost->get($outpost->id)?->count() ?? 0,
+                'label_above' => $above,
+                'label_level' => $level,
+            ];
+        }
+
+        return $markers;
+    }
+
+    /** @param  array<int, array<string, mixed>>  $placed */
+    private function labelCollides(array $placed, int $x, int $y, float $halfWidth, int $level, bool $above): bool
+    {
+        foreach ($placed as $other) {
+            $sameRow = $other['above'] === $above
+                && $other['level'] === $level
+                && abs($other['y'] - $y) < 1;
+
+            if ($sameRow && abs($other['x'] - $x) < $halfWidth + $other['halfWidth'] + 0.6) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Роверы на базе стоят рядом с ней, ушедшие в рейс показываются у своей
+     * цели: игрок должен видеть, где сейчас парк, не открывая панели.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function roverMarkers(Game $game): array
+    {
+        $destinations = $game->deliveries()
+            ->with('order.outpost')
+            ->where('status', 'in_transit')
+            ->get()
+            ->keyBy('rover_id');
+
+        $markers = [];
+        $atBase = 0;
+
+        foreach ($game->rovers as $rover) {
+            $delivery = $destinations->get($rover->id);
+
+            if ($delivery !== null) {
+                $markers[] = [
+                    'name' => $rover->name,
+                    'x' => $delivery->order->outpost->x,
+                    'y' => $delivery->order->outpost->y,
+                    'slot' => 0,
+                    'en_route' => true,
+                ];
+
+                continue;
+            }
+
+            $markers[] = [
+                'name' => $rover->name,
+                'x' => Rules::BASE_X,
+                'y' => Rules::BASE_Y,
+                'slot' => $atBase++,
+                'en_route' => false,
+            ];
+        }
+
+        return $markers;
     }
 }
