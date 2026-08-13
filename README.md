@@ -1,58 +1,245 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Moon Courier Crisis
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Пошаговый симулятор лунной доставки. На карте Луны стоит база, вокруг —
+аванпосты, между ними ездят роверы. Игрок распределяет заказы по роверам,
+считаясь с весом груза, зарядом аккумулятора, типом местности и риском
+маршрута, и старается продержаться 14 лунных суток, не уронив рейтинг базы.
 
-## About Laravel
+Решения игрока ограничены физикой: ровер обязан вернуться, поэтому заряд
+считается на дорогу в обе стороны, а тяжёлый груз одновременно поднимает
+расход, замедляет ход и повышает риск.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Скриншоты
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Пульт снабжения | Расчёт рейса | Итог смены |
+|---|---|---|
+| ![Карта и панели](docs/screenshots/console.png) | ![Расчёт рейса](docs/screenshots/mission.png) | ![Итог](docs/screenshots/summary.png) |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Как запустить
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Нужны PHP 8.3+, Composer, MySQL 8+ и Node 20+.
 
 ```bash
-composer require laravel/boost --dev
+git clone <адрес репозитория>
+cd <папка проекта>
 
-php artisan boost:install
+composer install
+npm install
+
+cp .env.example .env
+php artisan key:generate
+
+mysql -u root -e "CREATE DATABASE moon_courier CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -e "CREATE DATABASE moon_courier_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Если у MySQL задан пароль, пропишите `DB_USERNAME` и `DB_PASSWORD` в `.env`.
 
-## Contributing
+```bash
+php artisan migrate
+npm run build
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Откройте <http://127.0.0.1:8000>. Партия создаётся при первом заходе и живёт в
+сессии; кнопка «новая смена» начинает заново.
 
-## Code of Conduct
+Тесты:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan test
+```
 
-## Security Vulnerabilities
+## Что сделано
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Карта.** Сетка 18 × 12 клеток, клетка — 5 км. Пять типов местности, каждый
+со своей стоимостью движения и риском. Карта генерируется по зерну партии и
+сохраняется в базу, поэтому каждая игра новая, но воспроизводимая. Восемь
+аванпостов с настоящими лунными названиями разнесены по поясам дальности:
+ближние доступны любому роверу, дальние — только Тягачу и только налегке.
 
-## License
+**Парк.** Три класса роверов с разными грузоподъёмностью, аккумулятором и
+скоростью. У каждого — статус (на базе, в рейсе, в ремонте), заряд и
+накопленные улучшения.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Заявки.** Аванпост, вес, награда, срок, статус. Каждые сутки приходит две-три
+новые, просроченные сгорают и бьют по рейтингу базы.
+
+**Рейс.** Выбираете ровер и заявку — на карте прокладывается маршрут и
+открывается расчёт: расстояние, расход заряда, время, разложенный по
+составляющим риск и вердикт. Если рейс невозможен, показывается точная причина
+с числами.
+
+**Сутки.** Кнопка «завершить сутки» разрешает прибывшие рейсы, начисляет
+оплату, чинит и заряжает роверов, сжигает просроченные заявки и выдаёт новые.
+
+**Гараж.** Кредиты тратятся на покупку роверов и улучшения аккумулятора или
+грузового отсека.
+
+**Цель.** Продержаться 14 суток, не уронив рейтинг базы до нуля. Итог смены —
+кредиты плюс стоимость парка плюс рейтинг, умноженный на 10.
+
+## Как работает логика
+
+### Маршрут
+
+Путь ищется алгоритмом Дейкстры по стоимости движения, а не по прямой.
+
+| Местность | Стоимость движения | Риск клетки |
+|---|---|---|
+| морская равнина | ×1.0 | 1% |
+| реголит | ×1.3 | 2% |
+| вечная тень | ×1.6 | 5% |
+| кратерное поле | ×2.2 | 6% |
+| борозда | ×3.0 | 10% |
+
+Поэтому объезд борозды по равнине выходит дешевле короткого пути напрямую —
+на карте видно, как маршрут огибает тяжёлые участки.
+
+### Вес
+
+Загрузка задаёт коэффициент, который входит сразу в три расчёта:
+
+```
+коэффициент загрузки = 1 + (груз / грузоподъёмность) × 0.8
+```
+
+**Заряд.** Базовый расход — 1.5 единицы на клетку равнины, дальше умножается на
+стоимость местности и коэффициент загрузки. Клетки вечной тени добавляют 1.5
+единицы на обогрев. Обратный путь считается порожняком: ровер разгрузился на
+аванпосте.
+
+**Время.** Скорость делится на коэффициент загрузки, поэтому гружёный ровер
+идёт дольше и рискует не успеть к сроку.
+
+**Риск.** Загрузка выше 85% добавляет 8 процентных пунктов.
+
+### Риск
+
+Вероятность хотя бы одного происшествия на маршруте:
+
+```
+риск маршрута = 1 − Π (1 − риск клетки)
+```
+
+Сверху надбавки: перегрузка +8, возврат на заряде ниже 15% ёмкости +10,
+возврат позже срока заказа +5 процентных пунктов. Итог ограничен 85% — совсем
+гиблых рейсов не бывает. В карточке рейса каждая надбавка показана отдельной
+строкой, чтобы было видно, из чего сложилось число.
+
+Если бросок сработал, вид происшествия выбирается по таблице весов:
+
+| Инцидент | Вес | Последствие |
+|---|---|---|
+| застревание в реголите | 35 | +1 сутки, дополнительный расход заряда |
+| повреждение подвески | 25 | ремонт 150 кр, простой 2 суток |
+| пылевая буря | 20 | +2 суток |
+| потеря связи | 12 | доставка засчитана, оплата 80% |
+| критическая поломка | 8 | заказ провален, ремонт 400 кр, простой 3 суток |
+
+### Когда доставка невозможна
+
+Проверки идут все сразу, поэтому игрок видит полный список причин, а не
+исправляет их по одной:
+
+- груз тяжелее грузоподъёмности;
+- заряда не хватает на дорогу туда и обратно с неснижаемым резервом 10%;
+- ровер в рейсе или в ремонте;
+- заявка уже назначена другому роверу;
+- срок заявки истёк.
+
+Заведомо невыполнимый сценарий возникает из правил, а не подстроен вручную:
+тяжёлый груз на дальний аванпост влезает по весу только в Гусеницу, но ей на
+такое плечо не хватает заряда на возвращение, а Тягачу и Скауту не хватает
+грузоподъёмности.
+
+### Воспроизводимость
+
+Вся случайность идёт через генератор с явным зерном. Зерно партии задаёт карту,
+расстановку аванпостов и поток заявок; зерно рейса выводится из зерна партии и
+порядкового номера рейса внутри неё и записывается в `deliveries`.
+
+Из этого следует, что исход любого рейса можно повторить и объяснить, а редкий
+инцидент — поймать тестом. Обращений к `rand()` в игровой логике нет.
+
+## Где хранятся данные
+
+MySQL, семь таблиц.
+
+| Таблица | Что хранит |
+|---|---|
+| `games` | партия: сутки, кредиты, рейтинг, зерно, статус |
+| `map_tiles` | карта партии: координаты и тип местности |
+| `outposts` | аванпосты: название, координаты, плечо и расстояние от базы |
+| `rovers` | класс, грузоподъёмность, ёмкость и заряд, статус, ремонт, улучшения |
+| `orders` | аванпост, вес, награда, срок, статус |
+| `deliveries` | рейс: маршрут, расчёты, зерно, исход, инцидент |
+| `game_events` | журнал: что произошло в каждые сутки |
+
+`deliveries` хранит маршрут и все расчётные величины на момент отправки — так
+видно, что модель обещала и что вышло на самом деле.
+
+## Как устроен код
+
+```
+app/Domain/Lunar/    правила игры: чистый PHP без Eloquent и фасадов
+app/Services/        работа с базой: партия, отправка, сутки, гараж
+app/Http/Controllers тонкие контроллеры
+resources/views/     экран пульта
+```
+
+Ядро вынесено в домен намеренно: правила читаются отдельно от инфраструктуры и
+покрываются юнит-тестами без базы. Все игровые константы собраны в
+`app/Domain/Lunar/Rules.php` — баланс правится там, а не поиском чисел по коду.
+
+## Тесты
+
+130 тестов на Pest.
+
+Юнит-тесты домена проверяют, что маршрут огибает дорогую местность, что вес
+поднимает расход и что обратный путь дешевле, что каждая причина отказа
+срабатывает по отдельности, что частота инцидентов совпадает с заявленной
+вероятностью на двух тысячах прогонов и что одно зерно всегда даёт один исход.
+
+Функциональные тесты проверяют создание партии, отправку, завершение суток,
+условия победы и поражения, работу гаража и экран — включая раскладку подписей
+на карте.
+
+```bash
+php artisan test
+```
+
+## Что использовано из AI
+
+<!-- Впишите инструмент, которым пользовались. -->
+AI-ассистент применялся на всех этапах: обсуждение механики, написание кода и
+тестов, разбор ошибок.
+
+Что проверялось руками и чем именно:
+
+- **Баланс.** Первая версия оказалась математически непроходимой: за смену
+  выходило 9–11 рейсов при 2–4 новых заявках в сутки, и рейтинг обнулялся к
+  12 суткам во всех партиях. Прогон двенадцати партий скриптом показал разрыв
+  между пропускной способностью парка и потоком заявок; после правки скорости,
+  зарядки и потока смена стала проходимой с запасом 9–42 очка рейтинга.
+- **Генератор случайных чисел.** Тест на частоту показал, что инцидент
+  срабатывал в 100% случаев вместо 30: у генератора Лемера первое значение
+  линейно зависит от зерна, и для последовательных зёрен оно всегда мало.
+  Добавлено перемешивание стартового состояния.
+- **Воспроизводимость.** Обнаружено, что один и тот же сид давал разные исходы,
+  потому что зерно рейса выводилось из глобального идентификатора записи.
+  Исправлено на порядковый номер внутри партии и проверено повторным прогоном.
+- **Формулы.** Расход, время и дальность пересчитаны вручную и сверены с
+  выводом на экране; ожидаемые значения в тестах посчитаны на бумаге, а не
+  списаны с результата работы кода.
+- **Карта и маршруты.** Поиск пути проверен на нарисованных картах, где
+  правильный ответ известен заранее.
+
+## Что сознательно не сделано
+
+- **Авторизация и несколько игроков** — заданием не требуются.
+- **Анимация движения роверов** — рейс разрешается посуточно, анимация
+  потребовала бы фонового процесса ради украшения.
+- **Реальные снимки поверхности** — карта генерируется, названия объектов
+  настоящие; внешние тайлы сделали бы демонстрацию зависимой от сети.
+  Приложение работает полностью офлайн, шрифты собираются локально.
