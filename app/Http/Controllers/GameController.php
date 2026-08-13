@@ -80,7 +80,7 @@ class GameController extends Controller
                 'battery_level' => round($rover->battery_level),
                 'battery_capacity' => $rover->battery_capacity,
                 'battery_percent' => (int) round($rover->battery_level / $rover->battery_capacity * 100),
-                'range' => $this->rangeInTiles($rover),
+                'range_km' => $this->rangeInTiles($rover),
                 'available' => $rover->isAvailable(),
                 'status_label' => match ($rover->status) {
                     'idle' => 'на базе',
@@ -95,6 +95,7 @@ class GameController extends Controller
                 'outpost_id' => $order->outpost_id,
                 'weight_kg' => $order->weight_kg,
                 'reward' => $order->reward,
+                'distance_km' => $order->outpost->distanceKm(),
                 'days_left' => $order->deadline_day - $game->day,
             ])->values()->all(),
             'events' => $game->events()
@@ -123,7 +124,7 @@ class GameController extends Controller
     {
         $usable = $rover->battery_level - $rover->battery_capacity * Rules::BATTERY_RESERVE;
 
-        return max(0, (int) floor($usable / (Rules::BASE_BATTERY_DRAW * 2)));
+        return max(0, (int) floor($usable / (Rules::BASE_BATTERY_DRAW * 2))) * Rules::KM_PER_TILE;
     }
 
     /**
@@ -163,7 +164,7 @@ class GameController extends Controller
                 'name' => $outpost->name,
                 'x' => $outpost->x,
                 'y' => $outpost->y,
-                'route_cost' => $outpost->route_cost,
+                'distance_km' => $outpost->distanceKm(),
                 'pending' => $byOutpost->get($outpost->id)?->count() ?? 0,
                 'label_above' => $above,
                 'label_level' => $level,

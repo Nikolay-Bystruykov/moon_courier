@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Lunar\MissionEstimate;
 use App\Domain\Lunar\RejectionReason;
 use App\Domain\Lunar\Rules;
 use App\Models\Game;
@@ -32,7 +33,7 @@ class MissionController extends Controller
             'reasons' => $this->explain($plan, $rover, $order),
             'route' => $estimate?->route->toArray() ?? [],
             'estimate' => $estimate === null ? null : [
-                'route_length' => $estimate->route->length(),
+                'distance_km' => ($estimate->route->length() - 1) * Rules::KM_PER_TILE,
                 'battery_cost' => round($estimate->batteryCost, 1),
                 'battery_after' => round($estimate->batteryAfter, 1),
                 'battery_percent_after' => (int) round($estimate->batteryAfter / $rover->battery_capacity * 100),
@@ -83,10 +84,9 @@ class MissionController extends Controller
         return array_map(function (RejectionReason $reason) use ($estimate, $rover, $order) {
             return match ($reason) {
                 RejectionReason::InsufficientBattery => sprintf(
-                    'Заряда не хватит на дорогу туда и обратно: нужно %s, доступно %s из %d',
-                    number_format($estimate->batteryCost, 1, ',', ' '),
-                    number_format($rover->battery_level - $rover->battery_capacity * Rules::BATTERY_RESERVE, 1, ',', ' '),
-                    $rover->battery_capacity,
+                    'Не хватит заряда: до аванпоста %d км, а с этим грузом ровер уедет на %d км и вернётся',
+                    $this->oneWayKm($estimate),
+                    $this->reachableKm($estimate, $rover),
                 ),
                 RejectionReason::Overweight => sprintf(
                     'Груз тяжелее грузоподъёмности ровера: %d кг против %d кг',
@@ -96,6 +96,31 @@ class MissionController extends Controller
                 default => $reason->message(),
             };
         }, $plan->validation->reasons);
+    }
+
+    /** Расстояние до аванпоста в километрах. */
+    private function oneWayKm(MissionEstimate $estimate): int
+    {
+        return ($estimate->route->length() - 1) * Rules::KM_PER_TILE;
+    }
+
+    /**
+     * Насколько далеко ровер уедет по этому маршруту, чтобы ещё вернуться.
+     *
+     * Расход зависит от местности и веса, поэтому доступный заряд переводится
+     * в километры по фактической цене километра на этом рейсе. Величина
+     * измеряется так же, как расстояние до аванпоста, — иначе сравнивать их
+     * нельзя.
+     */
+    private function reachableKm(MissionEstimate $estimate, Rover $rover): int
+    {
+        if ($estimate->batteryCost <= 0.0) {
+            return 0;
+        }
+
+        $usable = $rover->battery_level - $rover->battery_capacity * Rules::BATTERY_RESERVE;
+
+        return max(0, (int) round($usable * $this->oneWayKm($estimate) / $estimate->batteryCost));
     }
 
     /** @return array{0: Game, 1: Rover, 2: Order} */

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Lunar\Rules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -17,7 +18,14 @@ class Outpost extends Model
             'x' => 'integer',
             'y' => 'integer',
             'route_cost' => 'float',
+            'route_tiles' => 'integer',
         ];
+    }
+
+    /** Физическое расстояние от базы в километрах. */
+    public function distanceKm(): int
+    {
+        return $this->route_tiles * Rules::KM_PER_TILE;
     }
 
     public function orders(): HasMany

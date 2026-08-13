@@ -29,11 +29,15 @@
                         <span class="tabular">до {{ $rover['capacity_kg'] }} кг</span>
                     </span>
 
-                    <span class="mt-1 flex items-center gap-2 text-[11px] text-dim">
-                        <span class="tabular">запас хода {{ $rover['range'] }} кл</span>
-                        <span class="text-edge">|</span>
-                        <span class="text-dim/70">{{ $rover['class_note'] }}</span>
+                    {{-- Дальность меряется так же, как расстояние до аванпоста:
+                         докуда ровер доедет и вернётся. --}}
+                    <span class="mt-1 block whitespace-nowrap text-[11px] text-dim">
+                        <span class="tabular">уедет на {{ $rover['range_km'] }} км</span>
+                        <span class="text-edge">·</span>
+                        <span class="text-dim/70">порожняком по равнине</span>
                     </span>
+
+                    <span class="mt-0.5 block text-[11px] text-dim/70">{{ $rover['class_note'] }}</span>
                 </button>
             </li>
         @endforeach

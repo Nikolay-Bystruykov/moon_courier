@@ -118,12 +118,18 @@ class GameFactory
 
                 [$x, $y] = array_map('intval', explode(':', $key));
 
+                // Приведённая стоимость уже известна из общего прохода, а
+                // физическая длина пути нужна отдельно: расстояние на экране
+                // показывается в километрах, а не в единицах проходимости.
+                $route = RouteFinder::find($map, $base, new Coordinate($x, $y));
+
                 Outpost::create([
                     'game_id' => $game->id,
                     'name' => array_shift($names),
                     'x' => $x,
                     'y' => $y,
                     'route_cost' => round($costs[$key], 2),
+                    'route_tiles' => $route->length() - 1,
                 ]);
             }
         }

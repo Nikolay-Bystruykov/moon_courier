@@ -77,7 +77,7 @@
                       paint-order="stroke" stroke="#12171f" stroke-width="3.5"
                       fill="{{ $active ? '#f0a92e' : '#6b7d93' }}">{{ $outpost['name'] }}</text>
 
-                <title>{{ $outpost['name'] }}: плечо {{ number_format($outpost['route_cost'], 1) }}, заявок {{ $outpost['pending'] }}</title>
+                <title>{{ $outpost['name'] }}: {{ $outpost['distance_km'] }} км от базы, заявок {{ $outpost['pending'] }}</title>
             </g>
         @endforeach
 

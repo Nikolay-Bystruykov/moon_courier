@@ -18,6 +18,9 @@ class Rules
 
     public const OUTPOST_COUNT = 8;
 
+    /** Сторона клетки в километрах — всё расстояние на экране считается отсюда. */
+    public const KM_PER_TILE = 5;
+
     /** Аванпосты ставятся только там, где стоимость маршрута попадает в диапазон. */
     public const MIN_OUTPOST_COST = 6.0;
 

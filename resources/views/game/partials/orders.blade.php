@@ -22,8 +22,9 @@
                             <span class="tabular text-xs text-amber">{{ number_format($order['reward'], 0, '.', ' ') }} кр</span>
                         </span>
 
-                        <span class="mt-1.5 flex gap-4 text-xs text-dim">
+                        <span class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-dim">
                             <span class="tabular">{{ $order['weight_kg'] }} кг</span>
+                            <span class="tabular">{{ $order['distance_km'] }} км</span>
                             <span class="tabular {{ $order['days_left'] <= 1 ? 'text-bad' : ($order['days_left'] <= 2 ? 'text-warn' : '') }}">
                                 срок {{ $order['days_left'] }} сут
                             </span>

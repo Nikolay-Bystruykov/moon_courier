@@ -25,6 +25,7 @@ it('persists a game with all related records', function () {
         'x' => 12,
         'y' => 9,
         'route_cost' => 18.4,
+        'route_tiles' => 14,
     ]);
 
     $rover = Rover::create([
@@ -84,6 +85,7 @@ it('persists a game with all related records', function () {
     expect($order->fresh()->outpost->name)->toBe('Тихо');
     expect($rover->fresh()->battery_level)->toBe(100.0);
     expect($outpost->fresh()->route_cost)->toBe(18.4);
+    expect($outpost->fresh()->distanceKm())->toBe(14 * App\Domain\Lunar\Rules::KM_PER_TILE);
 });
 
 it('rejects a duplicate tile at the same coordinates', function () {

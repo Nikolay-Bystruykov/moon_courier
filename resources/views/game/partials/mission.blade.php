@@ -12,8 +12,8 @@
 
         <dl class="mt-3 space-y-1.5 text-xs" x-show="plan.estimate">
             <div class="flex justify-between gap-3">
-                <dt class="text-dim">плечо маршрута</dt>
-                <dd class="tabular" x-text="plan.estimate?.route_length + ' кл'"></dd>
+                <dt class="text-dim">длина маршрута</dt>
+                <dd class="tabular" x-text="plan.estimate?.distance_km + ' км в одну сторону'"></dd>
             </div>
             <div class="flex justify-between gap-3">
                 <dt class="text-dim">расход заряда</dt>

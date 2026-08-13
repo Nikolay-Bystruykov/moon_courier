@@ -106,7 +106,7 @@ it('returns a full estimate for a feasible mission', function () {
             'reasons',
             'route',
             'estimate' => [
-                'route_length', 'battery_cost', 'battery_percent_after',
+                'distance_km', 'battery_cost', 'battery_percent_after',
                 'days', 'return_day', 'risk', 'risk_components',
             ],
             'order' => ['weight_kg', 'reward', 'outpost'],
@@ -150,8 +150,11 @@ it('reports how much charge is missing', function () {
         ->assertOk()
         ->json('reasons'));
 
-    expect($reasons)->toContain('нужно');
-    expect($reasons)->toContain('доступно');
+    // Обе величины называются в километрах: сравнивать заряд с расстоянием
+    // игрок не должен.
+    expect($reasons)->toContain('км');
+    expect($reasons)->toContain('до аванпоста');
+    expect($reasons)->toContain('уедет на');
 });
 
 it('dispatches a rover from the console', function () {
