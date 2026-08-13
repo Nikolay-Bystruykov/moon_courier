@@ -122,10 +122,36 @@ it('explains why a mission is not allowed', function () {
     $order = $game->orders()->first();
     $order->update(['weight_kg' => $scout->capacity_kg + 50]);
 
-    $this->getJson("/mission/estimate?rover_id={$scout->id}&order_id={$order->id}")
+    $response = $this->getJson("/mission/estimate?rover_id={$scout->id}&order_id={$order->id}")
         ->assertOk()
-        ->assertJsonPath('allowed', false)
-        ->assertJsonFragment(['Груз тяжелее грузоподъёмности ровера']);
+        ->assertJsonPath('allowed', false);
+
+    // Причина обязана называть конкретные числа: «не хватает» без величины
+    // не объясняет игроку, что менять.
+    $reasons = implode(' ', $response->json('reasons'));
+
+    expect($reasons)->toContain('Груз тяжелее грузоподъёмности ровера');
+    expect($reasons)->toContain((string) $order->weight_kg);
+    expect($reasons)->toContain((string) $scout->capacity_kg);
+});
+
+it('reports how much charge is missing', function () {
+    $game = app(GameFactory::class)->create(seed: 8080);
+    $this->withSession(['game_id' => $game->id]);
+
+    $scout = $game->rovers()->where('rover_class', 'scout')->first();
+    $farthest = $game->outposts()->orderByDesc('route_cost')->first();
+
+    $order = App\Models\Order::create(app(App\Services\OrderGenerator::class)->buildOrder(
+        $game, $farthest, weight: 40, deadlineIn: 5,
+    ));
+
+    $reasons = implode(' ', $this->getJson("/mission/estimate?rover_id={$scout->id}&order_id={$order->id}")
+        ->assertOk()
+        ->json('reasons'));
+
+    expect($reasons)->toContain('нужно');
+    expect($reasons)->toContain('доступно');
 });
 
 it('dispatches a rover from the console', function () {

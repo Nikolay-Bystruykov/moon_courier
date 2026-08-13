@@ -20,14 +20,20 @@
                         <span class="label {{ $rover['available'] ? '' : 'text-warn' }}">{{ $rover['status_label'] }}</span>
                     </span>
 
+                    {{-- Абсолютный заряд рядом с полосой: у роверов разные
+                         ёмкости, и один процент значит у них разное. --}}
                     <span class="mt-1.5 flex items-center gap-2 text-xs text-dim">
                         <span class="tracking-[-0.05em] {{ $rover['battery_percent'] < 30 ? 'text-bad' : 'text-good' }}">{{ str_repeat('■', $bars).str_repeat('□', 8 - $bars) }}</span>
-                        <span class="tabular">{{ $rover['battery_percent'] }}%</span>
+                        <span class="tabular">{{ $rover['battery_level'] }}/{{ $rover['battery_capacity'] }}</span>
                         <span class="text-edge">|</span>
                         <span class="tabular">до {{ $rover['capacity_kg'] }} кг</span>
                     </span>
 
-                    <span class="mt-1 block text-[11px] text-dim/70">{{ $rover['class_note'] }}</span>
+                    <span class="mt-1 flex items-center gap-2 text-[11px] text-dim">
+                        <span class="tabular">запас хода {{ $rover['range'] }} кл</span>
+                        <span class="text-edge">|</span>
+                        <span class="text-dim/70">{{ $rover['class_note'] }}</span>
+                    </span>
                 </button>
             </li>
         @endforeach

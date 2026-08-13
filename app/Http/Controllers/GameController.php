@@ -80,6 +80,7 @@ class GameController extends Controller
                 'battery_level' => round($rover->battery_level),
                 'battery_capacity' => $rover->battery_capacity,
                 'battery_percent' => (int) round($rover->battery_level / $rover->battery_capacity * 100),
+                'range' => $this->rangeInTiles($rover),
                 'available' => $rover->isAvailable(),
                 'status_label' => match ($rover->status) {
                     'idle' => 'на базе',
@@ -109,6 +110,20 @@ class GameController extends Controller
             'delivered' => $game->orders->where('status', 'delivered')->count(),
             'inTransit' => $game->deliveries()->where('status', 'in_transit')->count(),
         ];
+    }
+
+    /**
+     * Предельное плечо порожнего рейса в клетках равнины.
+     *
+     * Процент заряда сам по себе обманчив: у роверов разные ёмкости, и полный
+     * Скаут уезжает вдвое ближе, чем полупустой Тягач. Дальность выражена в
+     * тех же клетках, что и плечо маршрута в расчёте рейса.
+     */
+    private function rangeInTiles(\App\Models\Rover $rover): int
+    {
+        $usable = $rover->battery_level - $rover->battery_capacity * Rules::BATTERY_RESERVE;
+
+        return max(0, (int) floor($usable / (Rules::BASE_BATTERY_DRAW * 2)));
     }
 
     /**

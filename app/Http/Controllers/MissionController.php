@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Lunar\RejectionReason;
+use App\Domain\Lunar\Rules;
 use App\Models\Game;
 use App\Models\Order;
 use App\Models\Rover;
@@ -27,7 +29,7 @@ class MissionController extends Controller
 
         return response()->json([
             'allowed' => $plan->validation->allowed,
-            'reasons' => $plan->validation->messages(),
+            'reasons' => $this->explain($plan, $rover, $order),
             'route' => $estimate?->route->toArray() ?? [],
             'estimate' => $estimate === null ? null : [
                 'route_length' => $estimate->route->length(),
@@ -66,6 +68,34 @@ class MissionController extends Controller
         }
 
         return redirect()->route('game.show');
+    }
+
+    /**
+     * Причины отказа с конкретными числами там, где голая формулировка
+     * оставляет вопрос «а насколько не хватило».
+     *
+     * @return string[]
+     */
+    private function explain($plan, Rover $rover, Order $order): array
+    {
+        $estimate = $plan->estimate;
+
+        return array_map(function (RejectionReason $reason) use ($estimate, $rover, $order) {
+            return match ($reason) {
+                RejectionReason::InsufficientBattery => sprintf(
+                    'Заряда не хватит на дорогу туда и обратно: нужно %s, доступно %s из %d',
+                    number_format($estimate->batteryCost, 1, ',', ' '),
+                    number_format($rover->battery_level - $rover->battery_capacity * Rules::BATTERY_RESERVE, 1, ',', ' '),
+                    $rover->battery_capacity,
+                ),
+                RejectionReason::Overweight => sprintf(
+                    'Груз тяжелее грузоподъёмности ровера: %d кг против %d кг',
+                    $order->weight_kg,
+                    $rover->capacity_kg,
+                ),
+                default => $reason->message(),
+            };
+        }, $plan->validation->reasons);
     }
 
     /** @return array{0: Game, 1: Rover, 2: Order} */
